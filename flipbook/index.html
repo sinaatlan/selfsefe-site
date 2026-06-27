@@ -125,7 +125,7 @@
     <span id="page-info"></span>
     <button class="btn" id="btn-next">sonraki →</button>
   </div>
-  <div id="hint">klavye: ← →  ·  <a href="/" style="color:rgba(232,227,214,0.3);text-decoration:none;font-size:11px;letter-spacing:0.08em;">← ana sayfa</a></div>
+  <div id="hint">klavye: ← →</div>
 </div>
 
 <script>
@@ -238,10 +238,16 @@
 
   pageFlip.on('flip', updateUI);
 
-  pageFlip.on('load', () => {
+  pageFlip.on('init', () => {
     updateUI();
     setTimeout(() => loading.classList.add('hidden'), 300);
   });
+
+  // Fallback: if init event doesn't fire, hide loading after 4s
+  setTimeout(() => {
+    loading.classList.add('hidden');
+    updateUI();
+  }, 4000);
 
   btnPrev.addEventListener('click', () => pageFlip.flipPrev());
   btnNext.addEventListener('click', () => pageFlip.flipNext());
