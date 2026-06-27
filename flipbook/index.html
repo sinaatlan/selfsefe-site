@@ -4,82 +4,113 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>self-sefe — söylenmeyecek her şey</title>
-  <script src="https://unpkg.com/page-flip/dist/js/page-flip.browser.js"></script>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
     body {
       background: #1a1410;
+      min-height: 100vh;
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      min-height: 100vh;
-      font-family: Georgia, serif;
       padding: 16px;
+      font-family: Georgia, serif;
+      user-select: none;
     }
 
-    #book-wrapper {
+    #viewer {
       display: flex;
       flex-direction: column;
       align-items: center;
-      gap: 20px;
+      gap: 16px;
       width: 100%;
     }
 
-    #book-container {
-      position: relative;
+    /* Book spread */
+    #spread {
+      display: flex;
+      justify-content: center;
+      align-items: stretch;
+      gap: 2px;
       width: 100%;
       max-width: 960px;
+    }
+
+    .page-slot {
+      flex: 1;
+      max-width: 460px;
       display: flex;
+      align-items: center;
       justify-content: center;
+      background: #111;
     }
 
-    /* StPageFlip injects its canvas here */
-    #book {
+    .page-slot img {
       display: block;
+      width: 100%;
+      height: auto;
+      image-rendering: -webkit-optimize-contrast;
+      image-rendering: crisp-edges;
     }
 
-    /* Navigation */
+    .page-slot.empty {
+      background: #0d0b09;
+    }
+
+    /* Controls */
     #controls {
       display: flex;
       align-items: center;
-      gap: 24px;
-      user-select: none;
+      gap: 20px;
     }
 
     .btn {
       background: none;
-      border: 1px solid rgba(232, 227, 214, 0.3);
+      border: 1px solid rgba(232,227,214,0.25);
       color: #E8E3D6;
-      padding: 10px 28px;
-      font-size: 13px;
+      padding: 9px 24px;
+      font-size: 12px;
       letter-spacing: 0.12em;
       cursor: pointer;
-      transition: background 0.2s, border-color 0.2s;
       font-family: Georgia, serif;
-      text-transform: lowercase;
+      transition: background 0.15s, border-color 0.15s;
     }
 
-    .btn:hover {
-      background: rgba(232, 227, 214, 0.08);
-      border-color: rgba(232, 227, 214, 0.6);
+    .btn:hover:not(:disabled) {
+      background: rgba(232,227,214,0.08);
+      border-color: rgba(232,227,214,0.5);
     }
 
     .btn:disabled {
-      opacity: 0.25;
+      opacity: 0.2;
       cursor: default;
     }
 
     #page-info {
-      color: rgba(232, 227, 214, 0.5);
+      color: rgba(232,227,214,0.4);
       font-size: 12px;
       letter-spacing: 0.1em;
-      min-width: 80px;
+      min-width: 70px;
       text-align: center;
     }
 
-    /* Loading overlay */
+    #hint {
+      color: rgba(232,227,214,0.15);
+      font-size: 11px;
+      letter-spacing: 0.07em;
+    }
+
+    #home-link {
+      color: rgba(232,227,214,0.2);
+      font-size: 11px;
+      letter-spacing: 0.08em;
+      text-decoration: none;
+      margin-top: 4px;
+    }
+    #home-link:hover { color: rgba(232,227,214,0.5); }
+
+    /* Loading */
     #loading {
       position: fixed;
       inset: 0;
@@ -87,28 +118,21 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      z-index: 100;
-      transition: opacity 0.6s;
+      z-index: 99;
+      transition: opacity 0.4s;
     }
-
-    #loading.hidden {
-      opacity: 0;
-      pointer-events: none;
-    }
-
+    #loading.hidden { opacity: 0; pointer-events: none; }
     #loading span {
-      color: rgba(232, 227, 214, 0.5);
+      color: rgba(232,227,214,0.4);
       font-size: 13px;
       letter-spacing: 0.2em;
-      text-transform: lowercase;
     }
 
-    /* Keyboard hint */
-    #hint {
-      color: rgba(232, 227, 214, 0.2);
-      font-size: 11px;
-      letter-spacing: 0.08em;
-      margin-top: 4px;
+    /* Mobile: single page */
+    @media (max-width: 580px) {
+      #spread { gap: 0; }
+      .page-slot.right-slot { display: none; }
+      .page-slot { max-width: 100%; }
     }
   </style>
 </head>
@@ -116,16 +140,20 @@
 
 <div id="loading"><span>yükleniyor…</span></div>
 
-<div id="book-wrapper">
-  <div id="book-container">
-    <div id="book"></div>
+<div id="viewer">
+  <div id="spread">
+    <div class="page-slot left-slot"><img id="page-left" src="" alt=""></div>
+    <div class="page-slot right-slot"><img id="page-right" src="" alt=""></div>
   </div>
+
   <div id="controls">
     <button class="btn" id="btn-prev">← önceki</button>
     <span id="page-info"></span>
     <button class="btn" id="btn-next">sonraki →</button>
   </div>
-  <div id="hint">klavye: ← →</div>
+
+  <div id="hint">klavye: ← →  ·  tıkla: sayfa çevir</div>
+  <a id="home-link" href="/">← ana sayfa</a>
 </div>
 
 <script>
@@ -180,82 +208,97 @@
     'pages/self-sefe48.jpg'
   ];
 
-  const TOTAL = PAGES.length; // 48
+  const isMobile = () => window.innerWidth <= 580;
 
-  // Responsive page size — single page is 886×1240, ratio ~0.714
-  function calcSize() {
-    const maxW = Math.min(window.innerWidth - 32, 960);
-    const isMobile = window.innerWidth < 640;
-    if (isMobile) {
-      // Single page mode on mobile
-      const w = Math.min(maxW, 420);
-      return { w, h: Math.round(w / 0.714), single: true };
-    } else {
-      // Two-page spread: each page = maxW/2
-      const w = Math.floor(maxW / 2);
-      return { w, h: Math.round(w / 0.714), single: false };
-    }
+  // Spread logic: on desktop show 2 pages, cover (p0) alone, then pairs 1-2, 3-4...
+  // spreadIndex = which "spread" we're on
+  // spread 0 → page 0 (cover, left only)
+  // spread 1 → pages 1,2
+  // spread 2 → pages 3,4  ...
+  // spread n → pages (2n-1), (2n)
+
+  let spreadIndex = 0;
+  const totalPages = PAGES.length; // 48
+
+  function pagesForSpread(si) {
+    if (si === 0) return [0, null]; // cover alone on left
+    const left  = 2 * si - 1;
+    const right = 2 * si;
+    return [left, right < totalPages ? right : null];
   }
 
-  const { w, h, single } = calcSize();
+  const totalSpreads = 1 + Math.ceil((totalPages - 1) / 2); // 1 + 24 = 25
 
-  const pageFlip = new St.PageFlip(document.getElementById('book'), {
-    width: w,
-    height: h,
-    size: 'stretch',
-    minWidth: 150,
-    maxWidth: 500,
-    minHeight: 210,
-    maxHeight: 700,
-    drawShadow: true,
-    flippingTime: 700,
-    usePortrait: single,
-    startZIndex: 0,
-    autoSize: true,
-    maxShadowOpacity: 0.4,
-    showCover: true,
-    mobileScrollSupport: false,
-    swipeDistance: 30,
-    clickEventForward: true,
-    useMouseEvents: true
-  });
-
-  pageFlip.loadFromImages(PAGES);
-
-  // UI updates
-  const btnPrev = document.getElementById('btn-prev');
-  const btnNext = document.getElementById('btn-next');
+  const imgLeft  = document.getElementById('page-left');
+  const imgRight = document.getElementById('page-right');
+  const rightSlot = document.querySelector('.right-slot');
+  const btnPrev  = document.getElementById('btn-prev');
+  const btnNext  = document.getElementById('btn-next');
   const pageInfo = document.getElementById('page-info');
   const loading  = document.getElementById('loading');
 
-  function updateUI() {
-    const cur = pageFlip.getCurrentPageIndex();
-    const total = pageFlip.getPageCount();
-    pageInfo.textContent = (cur + 1) + ' / ' + total;
-    btnPrev.disabled = cur === 0;
-    btnNext.disabled = cur >= total - 1;
+  function render() {
+    const [l, r] = pagesForSpread(spreadIndex);
+    const mobile = isMobile();
+
+    imgLeft.src = PAGES[l];
+
+    if (r !== null && !mobile) {
+      imgRight.src = PAGES[r];
+      rightSlot.style.display = '';
+    } else {
+      imgRight.src = '';
+      rightSlot.style.display = 'none';
+    }
+
+    // Cover: show centered (hide right slot)
+    if (spreadIndex === 0 || spreadIndex === totalSpreads - 1) {
+      rightSlot.style.display = 'none';
+    }
+
+    const leftPage  = l + 1;
+    const rightPage = r !== null ? r + 1 : null;
+    if (mobile || r === null) {
+      pageInfo.textContent = leftPage + ' / ' + totalPages;
+    } else {
+      pageInfo.textContent = leftPage + '–' + rightPage + ' / ' + totalPages;
+    }
+
+    btnPrev.disabled = spreadIndex === 0;
+    btnNext.disabled = spreadIndex >= totalSpreads - 1;
   }
 
-  pageFlip.on('flip', updateUI);
+  function prev() { if (spreadIndex > 0) { spreadIndex--; render(); } }
+  function next() { if (spreadIndex < totalSpreads - 1) { spreadIndex++; render(); } }
 
-  pageFlip.on('init', () => {
-    updateUI();
-    setTimeout(() => loading.classList.add('hidden'), 300);
+  btnPrev.addEventListener('click', prev);
+  btnNext.addEventListener('click', next);
+
+  // Click left/right half of spread to navigate
+  document.getElementById('spread').addEventListener('click', (e) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    const mid = rect.left + rect.width / 2;
+    if (e.clientX < mid) prev(); else next();
   });
-
-  // Fallback: if init event doesn't fire, hide loading after 4s
-  setTimeout(() => {
-    loading.classList.add('hidden');
-    updateUI();
-  }, 4000);
-
-  btnPrev.addEventListener('click', () => pageFlip.flipPrev());
-  btnNext.addEventListener('click', () => pageFlip.flipNext());
 
   document.addEventListener('keydown', (e) => {
-    if (e.key === 'ArrowLeft')  pageFlip.flipPrev();
-    if (e.key === 'ArrowRight') pageFlip.flipNext();
+    if (e.key === 'ArrowLeft')  prev();
+    if (e.key === 'ArrowRight') next();
   });
+
+  window.addEventListener('resize', render);
+
+  // Preload first image then show
+  const firstImg = new Image();
+  firstImg.onload = () => {
+    render();
+    setTimeout(() => loading.classList.add('hidden'), 200);
+  };
+  firstImg.onerror = () => {
+    render();
+    loading.classList.add('hidden');
+  };
+  firstImg.src = PAGES[0];
 </script>
 </body>
 </html>
