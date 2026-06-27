@@ -208,24 +208,21 @@
 
   const isMobile = () => window.innerWidth <= 580;
 
-  // Spread logic: on desktop show 2 pages, cover (p0) alone, then pairs 1-2, 3-4...
-  // spreadIndex = which "spread" we're on
-  // spread 0 → page 0 (cover, left only)
-  // spread 1 → pages 1,2
-  // spread 2 → pages 3,4  ...
-  // spread n → pages (2n-1), (2n)
-
-  let spreadIndex = 0;
   const totalPages = PAGES.length; // 48
 
+  // Desktop: spread-based (cover alone, then pairs)
+  // Mobile: page-by-page
+  let spreadIndex = 0; // desktop spreads
+  let mobileIndex = 0; // mobile single page index
+
   function pagesForSpread(si) {
-    if (si === 0) return [0, null]; // cover alone on left
+    if (si === 0) return [0, null];
     const left  = 2 * si - 1;
     const right = 2 * si;
     return [left, right < totalPages ? right : null];
   }
 
-  const totalSpreads = 1 + Math.ceil((totalPages - 1) / 2); // 1 + 24 = 25
+  const totalSpreads = 1 + Math.ceil((totalPages - 1) / 2);
 
   const imgLeft  = document.getElementById('page-left');
   const imgRight = document.getElementById('page-right');
@@ -236,38 +233,53 @@
   const loading  = document.getElementById('loading');
 
   function render() {
-    const [l, r] = pagesForSpread(spreadIndex);
     const mobile = isMobile();
 
-    imgLeft.src = PAGES[l];
-
-    if (r !== null && !mobile) {
-      imgRight.src = PAGES[r];
-      rightSlot.style.display = '';
-    } else {
+    if (mobile) {
+      imgLeft.src = PAGES[mobileIndex];
       imgRight.src = '';
       rightSlot.style.display = 'none';
-    }
-
-    // Cover: show centered (hide right slot)
-    if (spreadIndex === 0 || spreadIndex === totalSpreads - 1) {
-      rightSlot.style.display = 'none';
-    }
-
-    const leftPage  = l + 1;
-    const rightPage = r !== null ? r + 1 : null;
-    if (mobile || r === null) {
-      pageInfo.textContent = leftPage + ' / ' + totalPages;
+      pageInfo.textContent = (mobileIndex + 1) + ' / ' + totalPages;
+      btnPrev.disabled = mobileIndex === 0;
+      btnNext.disabled = mobileIndex >= totalPages - 1;
     } else {
-      pageInfo.textContent = leftPage + '–' + rightPage + ' / ' + totalPages;
-    }
+      const [l, r] = pagesForSpread(spreadIndex);
+      imgLeft.src = PAGES[l];
 
-    btnPrev.disabled = spreadIndex === 0;
-    btnNext.disabled = spreadIndex >= totalSpreads - 1;
+      const isCoverOrBack = (spreadIndex === 0 || spreadIndex === totalSpreads - 1);
+      if (r !== null && !isCoverOrBack) {
+        imgRight.src = PAGES[r];
+        rightSlot.style.display = '';
+      } else {
+        imgRight.src = '';
+        rightSlot.style.display = 'none';
+      }
+
+      const leftPage  = l + 1;
+      const rightPage = r !== null && !isCoverOrBack ? r + 1 : null;
+      pageInfo.textContent = rightPage
+        ? leftPage + '–' + rightPage + ' / ' + totalPages
+        : leftPage + ' / ' + totalPages;
+
+      btnPrev.disabled = spreadIndex === 0;
+      btnNext.disabled = spreadIndex >= totalSpreads - 1;
+    }
   }
 
-  function prev() { if (spreadIndex > 0) { spreadIndex--; render(); } }
-  function next() { if (spreadIndex < totalSpreads - 1) { spreadIndex++; render(); } }
+  function prev() {
+    if (isMobile()) {
+      if (mobileIndex > 0) { mobileIndex--; render(); }
+    } else {
+      if (spreadIndex > 0) { spreadIndex--; render(); }
+    }
+  }
+  function next() {
+    if (isMobile()) {
+      if (mobileIndex < totalPages - 1) { mobileIndex++; render(); }
+    } else {
+      if (spreadIndex < totalSpreads - 1) { spreadIndex++; render(); }
+    }
+  }
 
   btnPrev.addEventListener('click', prev);
   btnNext.addEventListener('click', next);
