@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>self-sefe</title>
+  <link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: #E8E3D6;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      font-family: 'Lora', Georgia, serif;
+      padding: 40px 24px;
+    }
+
+    header {
+      text-align: center;
+      margin-bottom: 56px;
+    }
+
+    header .label {
+      font-size: 11px;
+      letter-spacing: 0.22em;
+      color: #7a6e60;
+      text-transform: lowercase;
+      margin-bottom: 10px;
+    }
+
+    header h1 {
+      font-size: clamp(36px, 6vw, 58px);
+      font-weight: 700;
+      color: #1f1a14;
+      letter-spacing: -0.02em;
+      line-height: 1;
+    }
+
+    header .sub {
+      font-size: 14px;
+      font-style: italic;
+      color: #7a6e60;
+      margin-top: 10px;
+      font-weight: 400;
+    }
+
+    .cards {
+      display: flex;
+      gap: 20px;
+      flex-wrap: wrap;
+      justify-content: center;
+      width: 100%;
+      max-width: 680px;
+    }
+
+    .card {
+      flex: 1 1 260px;
+      min-height: 180px;
+      border: 1.5px solid #1f1a14;
+      background: transparent;
+      color: #1f1a14;
+      text-decoration: none;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      padding: 28px 28px 22px;
+      transition: background 0.18s, color 0.18s;
+      cursor: pointer;
+      position: relative;
+    }
+
+    .card:hover {
+      background: #1f1a14;
+      color: #E8E3D6;
+    }
+
+    .card:hover .card-arrow {
+      color: #E8E3D6;
+    }
+
+    .card-label {
+      font-size: 10px;
+      letter-spacing: 0.2em;
+      text-transform: lowercase;
+      opacity: 0.5;
+      margin-bottom: 8px;
+    }
+
+    .card-title {
+      font-size: 26px;
+      font-weight: 700;
+      letter-spacing: -0.01em;
+      line-height: 1.1;
+    }
+
+    .card-desc {
+      font-size: 12px;
+      font-style: italic;
+      opacity: 0.6;
+      margin-top: 6px;
+      font-weight: 400;
+    }
+
+    .card-arrow {
+      font-size: 18px;
+      align-self: flex-end;
+      color: #1f1a14;
+      transition: color 0.18s;
+      margin-top: 20px;
+    }
+
+    footer {
+      margin-top: 56px;
+      font-size: 11px;
+      color: #a09890;
+      letter-spacing: 0.08em;
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="label">sina atlan</div>
+    <h1>self-sefe</h1>
+    <div class="sub">söylenmeyecek her şey</div>
+  </header>
+
+  <div class="cards">
+    <a class="card" href="/flipbook/">
+      <div>
+        <div class="card-label">kitap</div>
+        <div class="card-title">self-sefe</div>
+        <div class="card-desc">42 aforizma · dijital flipbook</div>
+      </div>
+      <div class="card-arrow">→</div>
+    </a>
+
+    <a class="card" href="/tablo.html">
+      <div>
+        <div class="card-label">araç</div>
+        <div class="card-title">tablo → svg</div>
+        <div class="card-desc">word tablosu · mm ölçü · svg + rtf</div>
+      </div>
+      <div class="card-arrow">→</div>
+    </a>
+  </div>
+
+  <footer>tablosvgdonusturucu.pages.dev</footer>
+
+</body>
+</html>

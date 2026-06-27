@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>self-sefe — söylenmeyecek her şey</title>
+  <script src="https://unpkg.com/page-flip/dist/js/page-flip.browser.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: #1a1410;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      font-family: Georgia, serif;
+      padding: 16px;
+    }
+
+    #book-wrapper {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 20px;
+      width: 100%;
+    }
+
+    #book-container {
+      position: relative;
+      width: 100%;
+      max-width: 960px;
+      display: flex;
+      justify-content: center;
+    }
+
+    /* StPageFlip injects its canvas here */
+    #book {
+      display: block;
+    }
+
+    /* Navigation */
+    #controls {
+      display: flex;
+      align-items: center;
+      gap: 24px;
+      user-select: none;
+    }
+
+    .btn {
+      background: none;
+      border: 1px solid rgba(232, 227, 214, 0.3);
+      color: #E8E3D6;
+      padding: 10px 28px;
+      font-size: 13px;
+      letter-spacing: 0.12em;
+      cursor: pointer;
+      transition: background 0.2s, border-color 0.2s;
+      font-family: Georgia, serif;
+      text-transform: lowercase;
+    }
+
+    .btn:hover {
+      background: rgba(232, 227, 214, 0.08);
+      border-color: rgba(232, 227, 214, 0.6);
+    }
+
+    .btn:disabled {
+      opacity: 0.25;
+      cursor: default;
+    }
+
+    #page-info {
+      color: rgba(232, 227, 214, 0.5);
+      font-size: 12px;
+      letter-spacing: 0.1em;
+      min-width: 80px;
+      text-align: center;
+    }
+
+    /* Loading overlay */
+    #loading {
+      position: fixed;
+      inset: 0;
+      background: #1a1410;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 100;
+      transition: opacity 0.6s;
+    }
+
+    #loading.hidden {
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    #loading span {
+      color: rgba(232, 227, 214, 0.5);
+      font-size: 13px;
+      letter-spacing: 0.2em;
+      text-transform: lowercase;
+    }
+
+    /* Keyboard hint */
+    #hint {
+      color: rgba(232, 227, 214, 0.2);
+      font-size: 11px;
+      letter-spacing: 0.08em;
+      margin-top: 4px;
+    }
+  </style>
+</head>
+<body>
+
+<div id="loading"><span>yükleniyor…</span></div>
+
+<div id="book-wrapper">
+  <div id="book-container">
+    <div id="book"></div>
+  </div>
+  <div id="controls">
+    <button class="btn" id="btn-prev">← önceki</button>
+    <span id="page-info"></span>
+    <button class="btn" id="btn-next">sonraki →</button>
+  </div>
+  <div id="hint">klavye: ← →  ·  <a href="/" style="color:rgba(232,227,214,0.3);text-decoration:none;font-size:11px;letter-spacing:0.08em;">← ana sayfa</a></div>
+</div>
+
+<script>
+  const PAGES = [
+    'pages/self-sefe.jpg',
+    'pages/self-sefe2.jpg',
+    'pages/self-sefe3.jpg',
+    'pages/self-sefe4.jpg',
+    'pages/self-sefe5.jpg',
+    'pages/self-sefe6.jpg',
+    'pages/self-sefe7.jpg',
+    'pages/self-sefe8.jpg',
+    'pages/self-sefe9.jpg',
+    'pages/self-sefe10.jpg',
+    'pages/self-sefe11.jpg',
+    'pages/self-sefe12.jpg',
+    'pages/self-sefe13.jpg',
+    'pages/self-sefe14.jpg',
+    'pages/self-sefe15.jpg',
+    'pages/self-sefe16.jpg',
+    'pages/self-sefe17.jpg',
+    'pages/self-sefe18.jpg',
+    'pages/self-sefe19.jpg',
+    'pages/self-sefe20.jpg',
+    'pages/self-sefe21.jpg',
+    'pages/self-sefe22.jpg',
+    'pages/self-sefe23.jpg',
+    'pages/self-sefe24.jpg',
+    'pages/self-sefe25.jpg',
+    'pages/self-sefe26.jpg',
+    'pages/self-sefe27.jpg',
+    'pages/self-sefe28.jpg',
+    'pages/self-sefe29.jpg',
+    'pages/self-sefe30.jpg',
+    'pages/self-sefe31.jpg',
+    'pages/self-sefe32.jpg',
+    'pages/self-sefe33.jpg',
+    'pages/self-sefe34.jpg',
+    'pages/self-sefe35.jpg',
+    'pages/self-sefe36.jpg',
+    'pages/self-sefe37.jpg',
+    'pages/self-sefe38.jpg',
+    'pages/self-sefe39.jpg',
+    'pages/self-sefe40.jpg',
+    'pages/self-sefe41.jpg',
+    'pages/self-sefe42.jpg',
+    'pages/self-sefe43.jpg',
+    'pages/self-sefe44.jpg',
+    'pages/self-sefe45.jpg',
+    'pages/self-sefe46.jpg',
+    'pages/self-sefe47.jpg',
+    'pages/self-sefe48.jpg'
+  ];
+
+  const TOTAL = PAGES.length; // 48
+
+  // Responsive page size — single page is 886×1240, ratio ~0.714
+  function calcSize() {
+    const maxW = Math.min(window.innerWidth - 32, 960);
+    const isMobile = window.innerWidth < 640;
+    if (isMobile) {
+      // Single page mode on mobile
+      const w = Math.min(maxW, 420);
+      return { w, h: Math.round(w / 0.714), single: true };
+    } else {
+      // Two-page spread: each page = maxW/2
+      const w = Math.floor(maxW / 2);
+      return { w, h: Math.round(w / 0.714), single: false };
+    }
+  }
+
+  const { w, h, single } = calcSize();
+
+  const pageFlip = new St.PageFlip(document.getElementById('book'), {
+    width: w,
+    height: h,
+    size: 'stretch',
+    minWidth: 150,
+    maxWidth: 500,
+    minHeight: 210,
+    maxHeight: 700,
+    drawShadow: true,
+    flippingTime: 700,
+    usePortrait: single,
+    startZIndex: 0,
+    autoSize: true,
+    maxShadowOpacity: 0.4,
+    showCover: true,
+    mobileScrollSupport: false,
+    swipeDistance: 30,
+    clickEventForward: true,
+    useMouseEvents: true
+  });
+
+  pageFlip.loadFromImages(PAGES);
+
+  // UI updates
+  const btnPrev = document.getElementById('btn-prev');
+  const btnNext = document.getElementById('btn-next');
+  const pageInfo = document.getElementById('page-info');
+  const loading  = document.getElementById('loading');
+
+  function updateUI() {
+    const cur = pageFlip.getCurrentPageIndex();
+    const total = pageFlip.getPageCount();
+    pageInfo.textContent = (cur + 1) + ' / ' + total;
+    btnPrev.disabled = cur === 0;
+    btnNext.disabled = cur >= total - 1;
+  }
+
+  pageFlip.on('flip', updateUI);
+
+  pageFlip.on('load', () => {
+    updateUI();
+    setTimeout(() => loading.classList.add('hidden'), 300);
+  });
+
+  btnPrev.addEventListener('click', () => pageFlip.flipPrev());
+  btnNext.addEventListener('click', () => pageFlip.flipNext());
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowLeft')  pageFlip.flipPrev();
+    if (e.key === 'ArrowRight') pageFlip.flipNext();
+  });
+</script>
+</body>
+</html>
